@@ -4,8 +4,10 @@ superelasticsearch is utility library that extends a particular version of
 [elasticsearch][es] library to provide some more utility functions on top of it
 to make using [Elasticsearch][es_server] even easier.
 
-[es]: http://github.com/elasticsearch/elasticsearch-py
-[es_server]: http://elasticsearch.org
+## Version
+
+Version of this library indicicates that this library works with the exact same
+version of the [official Elasticsearch Python client][es] as well.
 
 ## Usage
 
@@ -38,3 +40,6 @@ for docs in client.itersearch(index='test_index', doc_type'tweets',
     pass
 
 ```
+
+[es]: http://github.com/elasticsearch/elasticsearch-py
+[es_server]: http://elasticsearch.org
