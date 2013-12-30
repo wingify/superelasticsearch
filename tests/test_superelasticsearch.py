@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 import time
 
@@ -11,6 +12,8 @@ try:
 except ImportError:
     import unittest
 
+elasticsearch_logger = logging.getLogger('elasticsearch')
+elasticsearch_logger.setLevel(logging.ERROR)
 
 # get file's path in current directory
 local_path = lambda x: os.path.join(os.path.dirname(__file__), x)
