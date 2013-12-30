@@ -6,6 +6,7 @@ import time
 from copy import deepcopy
 from elasticsearch import Elasticsearch
 from mock import Mock
+from random import randint
 from superelasticsearch import SuperElasticsearch
 try:
     import unittest2 as unittest
@@ -27,8 +28,8 @@ class TestSuperElasticsearch(unittest.TestCase):
     # create a common SuperElasticsearch object
     ss = SuperElasticsearch(hosts=['localhost:9200'])
 
-    _index = 'automated_test_index'
-    _doc_type = 'automated_test_doc_type'
+    _index = 'automated_test_index__%s' % randint(0, 1000)
+    _doc_type = 'automated_test_doc_type__%s' % randint(0, 1000)
 
     @classmethod
     def setUpClass(cls):
