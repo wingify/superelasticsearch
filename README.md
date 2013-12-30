@@ -4,6 +4,8 @@ superelasticsearch is utility library that extends a particular version of
 [elasticsearch][es] library to provide some more utility functions on top of it
 to make using [Elasticsearch][es_server] even easier.
 
+[![build status](http://office.wingify.com/gitlab-ci/projects/9/status.png?ref=master)](http://office.wingify.com/gitlab-ci/projects/9?ref=master)
+
 ## Version
 
 Version of this library indicicates that this library works with the exact same
