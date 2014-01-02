@@ -4,7 +4,7 @@ import os
 import time
 
 from copy import deepcopy
-from elasticsearch import Elasticsearch
+from elasticsearch import Elasticsearch, ElasticsearchException, TransportError
 from mock import Mock
 from random import randint
 from superelasticsearch import SuperElasticsearch
@@ -105,7 +105,20 @@ class TestSuperElasticsearch(unittest.TestCase):
             ss.scroll = Mock(return_value=mocked_scroll_result)
             search_generator.next()
 
-        self.assertRaises(AssertionError, _assertion)
+        self.assertRaises(ElasticsearchException, _assertion)
+
+    def test_that_itersearch_clears_scroll_on_successful_scroll(self):
+        for docs in self.ss.itersearch(index=self._index,
+                                       doc_type=self._doc_type,
+                                       body=dict(query=dict(match_all={})),
+                                       scroll='10m', size=100):
+            scroll_id = docs['_scroll_id']
+        # check if it was the right exception
+        self.assertRaises(TransportError, self.es.scroll, scroll_id)
+        try:
+            self.es.scroll(scroll_id)
+        except TransportError, err:
+            self.assertTrue('SearchContextMissingException' in str(err))
 
     @classmethod
     def tearDownClass(cls):
