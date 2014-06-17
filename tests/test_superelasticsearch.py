@@ -47,19 +47,33 @@ class TestSuperElasticsearch(unittest.TestCase):
     def test_itersearch_raises_typeerror_when_scroll_param_is_missing(self):
         self.assertRaises(TypeError, self.ss.itersearch().next)
 
-    def test_itersearch_performs_scroll(self):
+    def test_chunked_itersearch_performs_scroll(self):
         for size in (10, 100):
             scrollCounter = 0
             docsCounter = 0
             time.sleep(1)
-            for docs in self.ss.itersearch(index=self._index,
-                                           doc_type=self._doc_type,
-                                           body=dict(query=dict(match_all={})),
-                                           scroll='10m', size=size):
+            for docs, _ in self.ss.itersearch(index=self._index,
+                                              doc_type=self._doc_type,
+                                              body=dict(
+                                                  query=dict(match_all={})),
+                                              scroll='10m', size=size):
                 scrollCounter += 1
-                docsCounter += len(docs['hits']['hits'])
+                docsCounter += len(docs)
 
             self.assertEquals(scrollCounter, self._total_docs / size + 1)
+
+    def test_non_chunked_itersearch_performs_scroll(self):
+        for size in (10, 100):
+            docsCounter = 0
+            time.sleep(1)
+            for doc, _ in self.ss.itersearch(index=self._index,
+                                             doc_type=self._doc_type,
+                                             body=dict(query=dict(match_all={})),
+                                             scroll='10m', size=size,
+                                          chunked=False):
+                docsCounter += 1
+
+            self.assertEquals(docsCounter, self._total_docs)
 
     def test_itersearch_raises_assertion_error_when_fetched_docs_are_less(self):
         mocked_value_template = {
@@ -108,11 +122,12 @@ class TestSuperElasticsearch(unittest.TestCase):
         self.assertRaises(ElasticsearchException, _assertion)
 
     def test_that_itersearch_clears_scroll_on_successful_scroll(self):
-        for docs in self.ss.itersearch(index=self._index,
-                                       doc_type=self._doc_type,
-                                       body=dict(query=dict(match_all={})),
-                                       scroll='10m', size=100):
-            scroll_id = docs['_scroll_id']
+        for docs, meta in self.ss.itersearch(index=self._index,
+                                             doc_type=self._doc_type,
+                                             body=dict(
+                                                 query=dict(match_all={})),
+                                             scroll='10m', size=100):
+            scroll_id = meta['_scroll_id']
         # check if it was the right exception
         self.assertRaises(TransportError, self.es.scroll, scroll_id)
         try:
