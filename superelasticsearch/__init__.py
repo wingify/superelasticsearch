@@ -20,22 +20,28 @@ class SuperElasticsearch(Elasticsearch):
         self._args = args
         self._kwargs = kwargs
 
-    def itersearch(self, **iter_kwargs):
+    def itersearch(self, **kwargs):
         '''
         Iterated search for making using Scroll API really simple to use.
 
         .. Usage::
         from superelasticsearch import SuperElasticsearch
         es = SuperElasticsearch(hosts=['localhost:9200'])
-        for docs, _ in es.itersearch(index='tweets', doc_type='tweet'):
-            for doc in docs:
-                print doc['_id']
+        for doc in es.itersearch(index='tweets', doc_type='tweet',
+                                 chunked=False):
+            print doc['_id']
         '''
 
         # prepare kwargs for search
-        kwargs = iter_kwargs.copy()
         if 'chunked' in kwargs:
-            kwargs.pop('chunked')
+            chunked = kwargs.pop('chunked')
+        else:
+            chunked = True
+
+        if 'with_meta' in kwargs:
+            with_meta = kwargs.pop('with_meta')
+        else:
+            with_meta = False
 
         # check for scroll argument in kwargs
         if 'scroll' not in kwargs:
@@ -54,11 +60,17 @@ class SuperElasticsearch(Elasticsearch):
 
             # if expected chunked, then return chunks else return
             # every doc per iteration
-            if iter_kwargs.get('chunked', True):
-                yield resp['hits']['hits'], meta
+            if chunked:
+                if with_meta:
+                    yield resp['hits']['hits'], meta
+                else:
+                    yield resp['hits']['hits']
             else:
                 for doc in resp['hits']['hits']:
-                    yield doc, meta
+                    if with_meta:
+                        yield doc, meta
+                    else:
+                        yield doc
 
             # increment the counter
             counter += len(resp['hits']['hits'])

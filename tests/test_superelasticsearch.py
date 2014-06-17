@@ -1,3 +1,4 @@
+import functools
 import json
 import logging
 import os
@@ -40,8 +41,8 @@ class TestSuperElasticsearch(unittest.TestCase):
             data = json.loads(f.read())
         for doc in data:
             cls.es.index(index=cls._index,
-                          doc_type=cls._doc_type,
-                          body=doc)
+                         doc_type=cls._doc_type,
+                         body=doc)
             cls._total_docs += 1
 
     def test_itersearch_raises_typeerror_when_scroll_param_is_missing(self):
@@ -52,11 +53,11 @@ class TestSuperElasticsearch(unittest.TestCase):
             scrollCounter = 0
             docsCounter = 0
             time.sleep(1)
-            for docs, _ in self.ss.itersearch(index=self._index,
-                                              doc_type=self._doc_type,
-                                              body=dict(
-                                                  query=dict(match_all={})),
-                                              scroll='10m', size=size):
+            for docs in self.ss.itersearch(index=self._index,
+                                           doc_type=self._doc_type,
+                                           body=dict(
+                                               query=dict(match_all={})),
+                                           scroll='10m', size=size):
                 scrollCounter += 1
                 docsCounter += len(docs)
 
@@ -66,16 +67,53 @@ class TestSuperElasticsearch(unittest.TestCase):
         for size in (10, 100):
             docsCounter = 0
             time.sleep(1)
-            for doc, _ in self.ss.itersearch(index=self._index,
-                                             doc_type=self._doc_type,
-                                             body=dict(query=dict(match_all={})),
-                                             scroll='10m', size=size,
+            for doc in self.ss.itersearch(index=self._index,
+                                          doc_type=self._doc_type,
+                                          body=dict(query=dict(match_all={})),
+                                          scroll='10m', size=size,
                                           chunked=False):
                 docsCounter += 1
 
             self.assertEquals(docsCounter, self._total_docs)
 
-    def test_itersearch_raises_assertion_error_when_fetched_docs_are_less(self):
+    def test_chunked_itersearch_with_meta_returns_meta(self):
+        for size in (10, 100):
+            scrollCounter = 0
+            docsCounter = 0
+            time.sleep(1)
+            for docs, meta in self.ss.itersearch(index=self._index,
+                                                 doc_type=self._doc_type,
+                                                 body=dict(query=dict(
+                                                     match_all={})),
+                                                 scroll='10m', size=size,
+                                                 chunked=True,
+                                                 with_meta=True):
+                docsCounter += len(docs)
+                scrollCounter += 1
+
+            self.assertEquals(docsCounter, self._total_docs)
+            self.assertEquals(scrollCounter, self._total_docs / size + 1)
+            self.assertTrue(isinstance(meta, dict))
+            self.assertEquals(meta['hits']['total'], self._total_docs)
+
+    def test_non_chunked_itersearch_with_meta_returns_meta(self):
+        for size in (10, 100):
+            docsCounter = 0
+            time.sleep(1)
+            for doc, meta in self.ss.itersearch(index=self._index,
+                                                doc_type=self._doc_type,
+                                                body=dict(query=dict(
+                                                    match_all={})),
+                                                scroll='10m', size=size,
+                                                chunked=False,
+                                                with_meta=True):
+                docsCounter += 1
+
+            self.assertEquals(docsCounter, self._total_docs)
+            self.assertTrue(isinstance(meta, dict))
+            self.assertEquals(meta['hits']['total'], self._total_docs)
+
+    def test_itersearch_raises_assertion_error_when_less_docs_fetched(self):
         mocked_value_template = {
             "took": 27,
             "timed_out": False,
@@ -95,38 +133,50 @@ class TestSuperElasticsearch(unittest.TestCase):
         }
 
         ss = SuperElasticsearch(hosts=['localhost:9200'])
-        mocked_search_result = deepcopy(mocked_value_template)
-        ss.search = Mock(return_value=mocked_search_result)
-        mocked_scroll_result = deepcopy(mocked_value_template)
-        mocked_scroll_result['_scroll_id'] = 456456
-        mocked_scroll_result['hits']['hits']  = [
-            dict(some_doc="with_some_val") for i in xrange(2)
-        ]
-        ss.scroll = Mock(return_value=mocked_scroll_result)
 
-        def _assertion():
+        def assertion(chunked):
+            # mock the client's scroll method
+            mocked_search_result = deepcopy(mocked_value_template)
+            ss.search = Mock(return_value=mocked_search_result)
+            mocked_scroll_result = deepcopy(mocked_value_template)
+            mocked_scroll_result['_scroll_id'] = 456456
+            mocked_scroll_result['hits']['hits'] = [
+                dict(some_doc="with_some_val") for i in xrange(2)
+            ]
+            ss.scroll = Mock(return_value=mocked_scroll_result)
+
             search_generator = ss.itersearch(index=self._index,
                                              doc_type=self._doc_type,
                                              body=dict(query=dict(
                                                  match_all={})),
-                                             scroll='10m')
-            search_generator.next()
-            search_generator.next()
+                                             scroll='10m',
+                                             chunked=chunked)
+            if chunked:
+                iterate_times = 2
+            else:
+                iterate_times = 12
+
+            for _ in range(0, iterate_times):
+                search_generator.next()
 
             mocked_scroll_result = deepcopy(mocked_value_template)
             mocked_scroll_result['_scroll_id'] = 789789
-            mocked_scroll_result['hits']['hits']  = []
+            mocked_scroll_result['hits']['hits'] = []
             ss.scroll = Mock(return_value=mocked_scroll_result)
             search_generator.next()
 
-        self.assertRaises(ElasticsearchException, _assertion)
+        self.assertRaises(ElasticsearchException,
+                          functools.partial(assertion, True))
+        self.assertRaises(ElasticsearchException,
+                          functools.partial(assertion, False))
 
     def test_that_itersearch_clears_scroll_on_successful_scroll(self):
         for docs, meta in self.ss.itersearch(index=self._index,
                                              doc_type=self._doc_type,
                                              body=dict(
                                                  query=dict(match_all={})),
-                                             scroll='10m', size=100):
+                                             scroll='10m', size=100,
+                                             with_meta=True):
             scroll_id = meta['_scroll_id']
         # check if it was the right exception
         self.assertRaises(TransportError, self.es.scroll, scroll_id)
