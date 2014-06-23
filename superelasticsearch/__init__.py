@@ -162,6 +162,13 @@ class _BulkAction(object):
 
 
 class BulkOperation(object):
+    '''
+    Simple bulk operations manager for Elasticsearch's Bulk API. Exposes API
+    similar to non-bulk counterparts of all supported Bulk Operations, manages
+    every call to make Bulk API request and executes it. Basically, it takes
+    away the pain of writing different code because of difference between
+    non-bulk APIs and bulk API.
+    '''
 
     # Map of valid Bulk Actions that Elasticsearch supports and which of those
     # actions expect a body that needs to be added in the line next to the line
