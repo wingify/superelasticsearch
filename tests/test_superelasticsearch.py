@@ -5,10 +5,15 @@ import os
 import time
 
 from copy import deepcopy
+from datadiff.tools import assert_equal as assertDictEquals
 from elasticsearch import Elasticsearch, ElasticsearchException, TransportError
 from mock import Mock
 from random import randint
+
+import superelasticsearch
 from superelasticsearch import SuperElasticsearch
+from superelasticsearch import BulkOperation
+from superelasticsearch import _BulkAction
 try:
     import unittest2 as unittest
 except ImportError:
@@ -21,7 +26,7 @@ elasticsearch_logger.setLevel(logging.ERROR)
 local_path = lambda x: os.path.join(os.path.dirname(__file__), x)
 
 
-class TestSuperElasticsearch(unittest.TestCase):
+class TestItersearch(unittest.TestCase):
 
     # create a common Elasticsearch object
     es = Elasticsearch(hosts=['localhost:9200'])
@@ -188,3 +193,206 @@ class TestSuperElasticsearch(unittest.TestCase):
     @classmethod
     def tearDownClass(cls):
         cls.es.indices.delete(index=cls._index)
+
+
+class TestBulkAction(unittest.TestCase):
+
+    def test_bulk_action_must_not_accept_invalid_action(self):
+        self.assertRaises(Exception, _BulkAction, type='asd', params={})
+
+    def test_bulk_action_must_accept_valid_actions(self):
+        _BulkAction('index', params={}, body=dict(key1='val1'))
+        _BulkAction('create', params={}, body=dict(key1='val1'))
+        _BulkAction('update', params={}, body=dict(key1='val1'))
+        _BulkAction('delete', params={})
+
+    def test_bulk_action_must_throw_exception_when_missing_expected_body(self):
+        self.assertRaises(Exception, _BulkAction, 'index', params={})
+        _BulkAction('index', params={}, body=dict(key1='val1'))
+
+
+class TestBulkOperation(unittest.TestCase):
+
+    # create a common Elasticsearch object
+    es = Elasticsearch(hosts=['localhost:9200'])
+
+    # create a common SuperElasticsearch object
+    ss = SuperElasticsearch(hosts=['localhost:9200'])
+
+    _index = 'automated_test_index__%s' % randint(0, 1000)
+
+    def setUp(self):
+        self._bulk = self.ss.bulk
+
+    def tearDown(self):
+        # restore bulk method back on SuperElasticsearch object
+        self.ss.bulk = self._bulk
+
+    def test_create_bulk_operation_returns_bulk_operation_object(self):
+        self.assertTrue(
+            isinstance(self.ss.create_bulk_operation(), BulkOperation))
+
+    def test_create_bulk_operation_must_pass_superlelasticsearch_object(self):
+        self.assertEquals(self.ss, self.ss.create_bulk_operation()._client)
+
+    def test_index_or_create_must_push_correct_action(self):
+        bulk = self.ss.create_bulk_operation()
+        body = dict(key1='val1')
+
+        # Without params
+        bulk._index_or_create('index', body)
+        action = bulk._actions[-1]
+        self.assertEquals(action.type, 'index')
+        assertDictEquals(action.body, body)
+        assertDictEquals(action.params, {})
+
+        # With params
+        bulk._index_or_create('create', doc_type='test_doc_type', body=body, 
+                              id=1, consistency='sync', ttl=200)
+        action = bulk._actions[-1]
+        self.assertEquals(action.type, 'create')
+        assertDictEquals(action.body, body)
+        assertDictEquals(action.params, {
+            '_type': 'test_doc_type',
+            '_id': 1,
+            'consistency': 'sync',
+            'ttl': '200'
+        })
+
+        bulk._index_or_create('create', index='test_bulk',
+                              doc_type='test_doc_type', body=body, 
+                              routing='abcd', refresh=True)
+        action = bulk._actions[-1]
+        self.assertEquals(action.type, 'create')
+        assertDictEquals(action.body, body)
+        assertDictEquals(action.params, {
+            '_index': 'test_bulk',
+            '_type': 'test_doc_type',
+            'routing': 'abcd',
+            'refresh': 'true',
+        })
+
+    def test_index_calls_index_or_create_method_with_correct_args(self):
+        bulk = self.ss.create_bulk_operation()
+        body = dict(key1='val1')
+
+        bulk._index_or_create = Mock()
+
+        bulk.index(index='test_bulk', doc_type='test_bulk_doc_type', body=body,
+                   timeout=200)
+        self.assertTrue(bulk._index_or_create)
+        self.assertEquals(bulk._index_or_create.call_args[0][0], 'index')
+        assertDictEquals(bulk._index_or_create.call_args[0][1], body)
+        self.assertEquals(bulk._index_or_create.call_args[0][2], None)
+        self.assertEquals(bulk._index_or_create.call_args[1]['timeout'], 200)
+        self.assertEquals(bulk._index_or_create.call_args[1]['index'],
+                          'test_bulk')
+        self.assertEquals(bulk._index_or_create.call_args[1]['doc_type'],
+                          'test_bulk_doc_type')
+
+    def test_create_calls_index_or_create_method_with_correct_args(self):
+        bulk = self.ss.create_bulk_operation()
+        body = dict(key1='val1')
+
+        bulk._index_or_create = Mock()
+
+        bulk.create(doc_type='test_bulk_doc_type', body=body,
+                    id=4, timeout=200, routing='abcd')
+        self.assertTrue(bulk._index_or_create)
+        self.assertEquals(bulk._index_or_create.call_args[0][0], 'create')
+        assertDictEquals(bulk._index_or_create.call_args[0][1], body)
+        self.assertEquals(bulk._index_or_create.call_args[0][2], 4)
+        self.assertEquals(bulk._index_or_create.call_args[1]['timeout'], 200)
+        self.assertEquals(bulk._index_or_create.call_args[1]['doc_type'],
+                          'test_bulk_doc_type')
+        self.assertEquals(bulk._index_or_create.call_args[1]['routing'],
+                          'abcd')
+
+    def test_execute_must_empty_actions_after_executing_bulk_operation(self):
+        bulk = self.ss.create_bulk_operation()
+        body = dict(key1='val1')
+        bulk.create(index='test_bulk', doc_type='test_bulk_doc_type', body=body,
+                    id=4, routing='abcd')
+        bulk.index(index='test_bulk', doc_type='test_bulk_doc_type', body=body)
+        bulk.execute()
+        self.assertEquals(len(bulk._actions), 0)
+
+    def test_execute_must_return_bulk_response(self):
+        bulk = self.ss.create_bulk_operation()
+        body = dict(key1='val1')
+        bulk.create(index='test_bulk', doc_type='test_bulk_doc_type', body=body,
+                    id=4, routing='abcd')
+        bulk.index(index='test_bulk', doc_type='test_bulk_doc_type', body=body)
+        resp = bulk.execute()
+        self.assertTrue(isinstance(resp, dict))
+        self.assertTrue(isinstance(resp['items'], list))
+        self.assertEquals(len(resp['items']), 2)
+
+    def test_execute_must_call_bulk_with_correct_body_arg(self):
+        body = dict(key1='val1')
+
+        bulk = self.ss.create_bulk_operation()
+        bulk._client.bulk = Mock()
+        bulk.create(index='test_bulk', doc_type='test_bulk_doc_type', body=body,
+                    id=4, routing='abcd')
+        bulk.index(index='test_bulk', doc_type='test_bulk_doc_type', body=body)
+        resp = bulk.execute()
+        self.assertTrue(bulk._client.bulk.called)
+        self.assertTrue(isinstance(bulk._client.bulk.call_args[1]['body'], str))
+        expected_bulk_body = ''
+        expected_bulk_body += json.dumps({
+            'create': {
+                '_index': 'test_bulk',
+                '_type': 'test_bulk_doc_type',
+                '_id': 4,
+                'routing': 'abcd'
+            }
+        }) + '\n'
+        expected_bulk_body += json.dumps(body) + '\n'
+        expected_bulk_body += json.dumps({
+            'index': {
+                '_index': 'test_bulk',
+                '_type': 'test_bulk_doc_type',
+            }
+        }) + '\n'
+        expected_bulk_body += json.dumps(body) + '\n'
+        self.assertEquals(bulk._client.bulk.call_args[1]['body'],
+                          expected_bulk_body)
+
+    def test_execute_must_use_kwargs_provided_at_the_creation_of_bulk_op(self):
+        body = dict(key1='val1')
+
+        bulk = self.ss.create_bulk_operation(index='default_index',
+                                             doc_type='some_type',
+                                             refresh=True)
+        bulk._client.bulk = Mock()
+        bulk.create(index='test_bulk', doc_type='test_bulk_doc_type', body=body,
+                    id=4, routing='abcd')
+        bulk.index(index='test_bulk', doc_type='test_bulk_doc_type', body=body)
+        resp = bulk.execute()
+        self.assertTrue(bulk._client.bulk.called)
+        self.assertEquals(bulk._client.bulk.call_args[1]['index'],
+                          'default_index')
+        self.assertEquals(bulk._client.bulk.call_args[1]['doc_type'],
+                          'some_type')
+        self.assertEquals(bulk._client.bulk.call_args[1]['refresh'],
+                          'true')
+
+    def test_execute_must_override_kwargs_provided_at_bulk_op_creation(self):
+        body = dict(key1='val1')
+
+        bulk = self.ss.create_bulk_operation(index='default_index',
+                                             doc_type='some_type',
+                                             refresh=True)
+        bulk._client.bulk = Mock()
+        bulk.create(index='test_bulk', doc_type='test_bulk_doc_type', body=body,
+                    id=4, routing='abcd')
+        bulk.index(index='test_bulk', doc_type='test_bulk_doc_type', body=body)
+        resp = bulk.execute(index='some_other_index', refresh=False)
+        self.assertTrue(bulk._client.bulk.called)
+        self.assertEquals(bulk._client.bulk.call_args[1]['index'],
+                          'some_other_index')
+        self.assertEquals(bulk._client.bulk.call_args[1]['doc_type'],
+                          'some_type')
+        self.assertEquals(bulk._client.bulk.call_args[1]['refresh'],
+                          'false')
