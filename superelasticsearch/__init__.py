@@ -150,6 +150,16 @@ class _BulkAction(object):
         self.params = params
         self.body = body
 
+    @property
+    def es_op(self):
+        retval = ''
+
+        retval += json.dumps({self.type: self.params})
+        if BulkOperation.BULK_ACTIONS.get(self.type):
+            retval += '\n' + json.dumps(self.body)
+
+        return retval
+
 
 class BulkOperation(object):
 
@@ -210,9 +220,7 @@ class BulkOperation(object):
 
         bulk_body = ''
         for action in self._actions:
-            bulk_body += json.dumps({action.type: action.params}) + '\n'
-            if self.BULK_ACTIONS.get(action.type):
-                bulk_body += json.dumps(action.body) + '\n'
+            bulk_body += action.es_op + '\n'
 
         bulk_kwargs = {}
         bulk_kwargs.update(self._params)

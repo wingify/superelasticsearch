@@ -10,7 +10,6 @@ from elasticsearch import Elasticsearch, ElasticsearchException, TransportError
 from mock import Mock
 from random import randint
 
-import superelasticsearch
 from superelasticsearch import SuperElasticsearch
 from superelasticsearch import BulkOperation
 from superelasticsearch import _BulkAction
@@ -210,6 +209,28 @@ class TestBulkAction(unittest.TestCase):
         self.assertRaises(Exception, _BulkAction, 'index', params={})
         _BulkAction('index', params={}, body=dict(key1='val1'))
 
+    def test_bulk_action_must_generate_valid_bulk_op_for_es(self):
+        body = dict(key1='val1')
+
+        action = _BulkAction('index', params={}, body=body)
+        self.assertEquals(action.es_op,
+                          (json.dumps({ 'index': {} }) + '\n' +
+                           json.dumps(body)))
+
+        action = _BulkAction('create', params=dict(routing='123', refresh=True),
+                             body=body)
+        self.assertEquals(action.es_op,
+                          (json.dumps({ 'create': dict(routing='123',
+                                                       refresh=True) }) +
+                           '\n' + json.dumps(body)))
+
+        # make sure that body is ignored when the operation does not require it
+        action = _BulkAction('delete', params=dict(routing='123', refresh=True),
+                             body=body)
+        self.assertEquals(action.es_op,
+                          (json.dumps({ 'delete': dict(routing='123',
+                                                       refresh=True) })))
+
 
 class TestBulkOperation(unittest.TestCase):
 
@@ -247,7 +268,7 @@ class TestBulkOperation(unittest.TestCase):
         assertDictEquals(action.params, {})
 
         # With params
-        bulk._index_or_create('create', doc_type='test_doc_type', body=body, 
+        bulk._index_or_create('create', doc_type='test_doc_type', body=body,
                               id=1, consistency='sync', ttl=200)
         action = bulk._actions[-1]
         self.assertEquals(action.type, 'create')
@@ -336,26 +357,14 @@ class TestBulkOperation(unittest.TestCase):
         bulk.create(index='test_bulk', doc_type='test_bulk_doc_type', body=body,
                     id=4, routing='abcd')
         bulk.index(index='test_bulk', doc_type='test_bulk_doc_type', body=body)
+
+        expected_bulk_body = ''
+        for action in bulk._actions:
+            expected_bulk_body += action.es_op + '\n'
+
         resp = bulk.execute()
         self.assertTrue(bulk._client.bulk.called)
         self.assertTrue(isinstance(bulk._client.bulk.call_args[1]['body'], str))
-        expected_bulk_body = ''
-        expected_bulk_body += json.dumps({
-            'create': {
-                '_index': 'test_bulk',
-                '_type': 'test_bulk_doc_type',
-                '_id': 4,
-                'routing': 'abcd'
-            }
-        }) + '\n'
-        expected_bulk_body += json.dumps(body) + '\n'
-        expected_bulk_body += json.dumps({
-            'index': {
-                '_index': 'test_bulk',
-                '_type': 'test_bulk_doc_type',
-            }
-        }) + '\n'
-        expected_bulk_body += json.dumps(body) + '\n'
         self.assertEquals(bulk._client.bulk.call_args[1]['body'],
                           expected_bulk_body)
 
