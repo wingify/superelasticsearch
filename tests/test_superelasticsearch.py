@@ -405,3 +405,60 @@ class TestBulkOperation(unittest.TestCase):
                           'some_type')
         self.assertEquals(bulk._client.bulk.call_args[1]['refresh'],
                           'false')
+
+    def test_update_must_push_correct_action(self):
+        bulk = self.ss.create_bulk_operation()
+        body = dict(key1='val1')
+
+        # Without params
+        bulk.update(id=123, body=body)
+        action = bulk._actions[-1]
+        self.assertEquals(action.type, 'update')
+        assertDictEquals(action.body, body)
+        assertDictEquals(action.params, dict(_id=123))
+
+        # With params
+        bulk.update(index='test_index', doc_type='test_doc_type', body=body,
+                    id=123, consistency='sync', ttl=200)
+        action = bulk._actions[-1]
+        self.assertEquals(action.type, 'update')
+        assertDictEquals(action.body, body)
+        assertDictEquals(action.params, {
+            '_index': 'test_index',
+            '_type': 'test_doc_type',
+            '_id': 123,
+            'consistency': 'sync',
+            'ttl': '200'
+        })
+
+    def test_delete_must_push_correct_action(self):
+        bulk = self.ss.create_bulk_operation()
+        body = dict(key1='val1')
+
+        # Without params
+        bulk.delete(id=123)
+        action = bulk._actions[-1]
+        self.assertEquals(action.type, 'delete')
+        assertDictEquals(action.body, None)
+        assertDictEquals(action.params, dict(_id=123))
+
+        # With params
+        bulk.delete(index='test_index', doc_type='test_doc_type',
+                    id=123, consistency='sync', parent=1)
+        action = bulk._actions[-1]
+        self.assertEquals(action.type, 'delete')
+        assertDictEquals(action.body, None)
+        assertDictEquals(action.params, {
+            '_index': 'test_index',
+            '_type': 'test_doc_type',
+            '_id': 123,
+            'consistency': 'sync',
+            'parent': '1',
+        })
+
+        # Make sure delete does not push body even if passed
+        bulk.delete(id=123, body=body)
+        action = bulk._actions[-1]
+        self.assertEquals(action.type, 'delete')
+        assertDictEquals(action.body, None)
+        assertDictEquals(action.params, dict(_id=123))

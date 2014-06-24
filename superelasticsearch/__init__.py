@@ -319,3 +319,67 @@ class BulkOperation(object):
         '''
 
         self._index_or_create('create', body, id, **kwargs)
+
+    @query_params('index', 'doc_type', 'consistency', 'parent', 'replication',
+                  'routing', 'ttl', 'version', 'version_type')
+    def update(self, id, body, params=None, **kwargs):
+        '''
+        Implementation of Bulk Update operation.
+
+        :arg index: The name of the index
+        :arg doc_type: The type of the document
+        :arg body: The document
+        :arg id: Document ID
+        :arg consistency: Explicit write consistency setting for the operation
+        :arg parent: ID of the parent document
+        :arg routing: Specific routing value
+        :arg ttl: Expiration time for the document
+        :arg version: Explicit version number for concurrency control
+        :arg version_type: Specific version type
+        '''
+
+        bulk_params = {}
+
+        if params.get('index') is not None:
+            bulk_params['_index'] = params['index']
+            params.pop('index')
+        if params.get('doc_type') is not None:
+            bulk_params['_type'] = params['doc_type']
+            params.pop('doc_type')
+        bulk_params.update(_id=id)
+
+        bulk_params.update(params)
+
+        self._actions.append(_BulkAction(type='update', params=bulk_params,
+                                         body=body))
+
+    @query_params('index', 'doc_type', 'consistency', 'parent', 'replication',
+                  'routing', 'version', 'version_type')
+    def delete(self, id, params=None, **kwargs):
+        '''
+        Implementation of Bulk Delete operation.
+
+        :arg index: The name of the index
+        :arg doc_type: The type of the document
+        :arg id: Document ID
+        :arg consistency: Explicit write consistency setting for the operation
+        :arg parent: ID of the parent document
+        :arg replication: Explicitly set the replication type (default: sync)
+        :arg routing: Specific routing value
+        :arg version: Explicit version number for concurrency control
+        :arg version_type: Specific version type
+        '''
+
+        bulk_params = {}
+
+        if params.get('index') is not None:
+            bulk_params['_index'] = params['index']
+            params.pop('index')
+        if params.get('doc_type') is not None:
+            bulk_params['_type'] = params['doc_type']
+            params.pop('doc_type')
+        bulk_params.update(_id=id)
+
+        bulk_params.update(params)
+
+        self._actions.append(_BulkAction(type='delete', params=bulk_params))
