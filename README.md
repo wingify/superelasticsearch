@@ -23,7 +23,7 @@ SuperElasticsearch provides a few additional APIs that are sugar coted to
 simplify using Elasticsearch in Python. These additional APIs are listed as
 follows:
 
-### Iterated Serach (or simple Scroll API)
+### Iterated Serach (or simpler Scroll API)
 
 Iterated search allows you to perform scroll API with ease and helps you reduce
 code, especially where you might want to use it in a loop. Iterated search
@@ -36,12 +36,49 @@ from superelasticsearch import SuperElasticsearch
 
 client = SuperElasticsearch(hosts=['localhost:9200'])
 
-for docs in client.itersearch(index='test_index', doc_type'tweets',
-                              scroll='10m'):
-    # do something with docs here
+for doc in client.itersearch(index='test_index', doc_type'tweets',
+                             scroll='10m'):
+    # do something with doc here
     pass
 
 ```
+
+## Simpler Bulk API
+
+Elasitcsearch's Bulk API is extremely helpful but has different semantics.
+Using Bulk API means manual handling of all the differences in naming of
+parameters, manual construction of the complex bulk body and all the errors
+and debugging challenges that come as extra work in the process.
+
+SuperElasticsearch provides a simpler Bulk API that enables you to use Bulk
+API in a non-bulk fashion.
+
+Example:
+
+```
+from superelasticsearch import SuperElasticsearch
+
+client = SuperElasticsearch(hosts=['localhost:9200'])
+bulk = client.create_bulk_operation()
+
+bulk.index(index='test_index_1', doc_type='test_doc_type',
+		   body=dict(key1='val1'))
+bulk.delete(index='test_index_2', doc_type='test_doc_type',
+		    id=123)
+bulk.update(index='test_index_3', doc_type='test_doc_type',
+			id=456, body={
+				'script': 'ctx._source.count += count',
+				'params': {
+					'count': 1
+				}
+			})
+
+resp = bulk.execute()
+```
+
+SuperElasticsearch's Bulk Operations do all the book keeping of individual
+operations that you perform, properly serialize those operations to Bulk APIs
+requirements and executes the request.
 
 [es]: http://github.com/elasticsearch/elasticsearch-py
 [es_server]: http://elasticsearch.org
