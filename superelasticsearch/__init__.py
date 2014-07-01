@@ -332,6 +332,7 @@ class BulkOperation(object):
         :arg id: Document ID
         :arg consistency: Explicit write consistency setting for the operation
         :arg parent: ID of the parent document
+        :arg replication: Specific replication type (default: sync)
         :arg routing: Specific routing value
         :arg ttl: Expiration time for the document
         :arg version: Explicit version number for concurrency control
