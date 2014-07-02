@@ -1,6 +1,21 @@
 '''
     superelasticsearch
     ~~~~~~~~~~~~~~~~~~
+
+    SuperElasticsearch - the client to make your life with Elasticsearch and
+    Python easy.
+
+    This library aims to make working with Elasticsearch in Python easier. The
+    main of this library is to provide you with APIs that otherwise don't
+    exist. These new APIs have been developed using existing Elasticsearch
+    APIs.
+
+    SuperElasticsearch essentially builds upon the official Python client for
+    Elasticsearch  by subclassing the main client class and extending it to
+    provide more APIs that make working with Elasticsearch easier. This makes
+    it easy for you to adopt this library as it supports everything that the
+    official library supports, and it adds more APIs that work like the APIs
+    of the official client.
 '''
 
 __all__ = ['SuperElasticsearch']
@@ -16,7 +31,8 @@ json = JSONSerializer()
 
 class SuperElasticsearch(Elasticsearch):
     '''
-    Subclass of elasticsearch.Elasticsearch to provide some useful utilities.
+    Subclass of :class:`elasticsearch.Elasticsearch` to provide some useful
+    utilities.
     '''
 
     def __init__(self, *args, **kwargs):
