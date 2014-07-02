@@ -50,7 +50,7 @@ class TestItersearch(unittest.TestCase):
             cls._total_docs += 1
 
     def test_itersearch_raises_typeerror_when_scroll_param_is_missing(self):
-        self.assertRaises(TypeError, self.ss.itersearch().next)
+        self.assertRaises(TypeError, self.ss.itersearch)
 
     def test_chunked_itersearch_performs_scroll(self):
         for size in (10, 100):

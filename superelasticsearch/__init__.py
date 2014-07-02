@@ -26,9 +26,68 @@ class SuperElasticsearch(Elasticsearch):
         self._args = args
         self._kwargs = kwargs
 
-    def itersearch(self, **kwargs):
+    def itersearch(self, scroll, **kwargs):
         '''
-        Iterated search for making using Scroll API really simple to use.
+        Iterated search for making Scroll API really simple to use.
+
+        Executes a search query of scroll type and returns an iterator for easy
+        iteration over the result set and for making further calls to
+        Elasticsearch for scrolling over the remaining results.
+
+        :arg index: A comma-separated list of index names to search; use `_all`
+            or empty string to perform the operation on all indices
+        :arg doc_type: A comma-separated list of document types to search;
+            leave empty to perform the operation on all types
+        :arg body: The search definition using the Query DSL
+        :arg chunked: False to get one document per iteration. False to get the
+            all the documents returned in response to every scroll request.
+            Defaults to False.
+        :arg with_meta: True to return meta data of Scroll API requests with
+                        every iteration. Defaults to False.
+        :arg _source: True or false to return the _source field or not, or a
+            list of fields to return
+        :arg _source_exclude: A list of fields to exclude from the returned
+            _source field
+        :arg _source_include: A list of fields to extract and return from the
+            _source field
+        :arg analyze_wildcard: Specify whether wildcard and prefix queries
+            should be analyzed (default: false)
+        :arg analyzer: The analyzer to use for the query string
+        :arg default_operator: The default operator for query string query (AND
+            or OR) (default: OR)
+        :arg df: The field to use as default where no field prefix is given in
+            the query string
+        :arg explain: Specify whether to return detailed information about
+            score computation as part of a hit
+        :arg fields: A comma-separated list of fields to return as part of a hit
+        :arg ignore_indices: When performed on multiple indices, allows to
+            ignore `missing` ones (default: none)
+        :arg indices_boost: Comma-separated list of index boosts
+        :arg lenient: Specify whether format-based query failures (such as
+            providing text to a numeric field) should be ignored
+        :arg lowercase_expanded_terms: Specify whether query terms should be
+            lowercased
+        :arg from_: Starting offset (default: 0)
+        :arg preference: Specify the node or shard the operation should be
+            performed on (default: random)
+        :arg q: Query in the Lucene query string syntax
+        :arg routing: A comma-separated list of specific routing values
+        :arg scroll: Specify how long a consistent view of the index should be
+            maintained for scrolled search
+        :arg size: Number of hits to return (default: 10)
+        :arg sort: A comma-separated list of <field>:<direction> pairs
+        :arg source: The URL-encoded request definition using the Query DSL
+            (instead of using request body)
+        :arg stats: Specific 'tag' of the request for logging and statistical
+            purposes
+        :arg suggest_field: Specify which field to use for suggestions
+        :arg suggest_mode: Specify suggest mode (default: missing)
+        :arg suggest_size: How many suggestions to return in response
+        :arg suggest_text: The source text for which the suggestions should be
+            returned
+        :arg timeout: Explicit operation timeout
+        :arg version: Specify whether to return document version as part of a
+            hit
 
         .. Usage::
         from superelasticsearch import SuperElasticsearch
@@ -37,6 +96,9 @@ class SuperElasticsearch(Elasticsearch):
                                  chunked=False):
             print doc['_id']
         '''
+
+        # add scroll
+        kwargs['scroll'] = scroll
 
         # prepare kwargs for search
         if 'chunked' in kwargs:
@@ -48,10 +110,6 @@ class SuperElasticsearch(Elasticsearch):
             with_meta = kwargs.pop('with_meta')
         else:
             with_meta = False
-
-        # check for scroll argument in kwargs
-        if 'scroll' not in kwargs:
-            raise TypeError('Value for scroll parameter must be provided.')
 
         resp = self.search(**kwargs)
         total = resp['hits']['total']
