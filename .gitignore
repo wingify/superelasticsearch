@@ -37,3 +37,6 @@ nosetests.xml
 
 # Celery
 *.db
+
+# Vagrant
+.vagrant
