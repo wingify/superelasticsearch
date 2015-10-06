@@ -68,16 +68,16 @@ client = SuperElasticsearch(hosts=['localhost:9200'])
 bulk = client.bulk_operation()
 
 bulk.index(index='test_index_1', doc_type='test_doc_type',
-		   body=dict(key1='val1'))
+           body=dict(key1='val1'))
 bulk.delete(index='test_index_2', doc_type='test_doc_type',
-		    id=123)
+            id=123)
 bulk.update(index='test_index_3', doc_type='test_doc_type',
-			id=456, body={
-				'script': 'ctx._source.count += count',
-				'params': {
-					'count': 1
-				}
-			})
+            id=456, body={
+                'script': 'ctx._source.count += count',
+                'params': {
+                    'count': 1
+                }
+            })
 
 resp = bulk.execute()
 ```

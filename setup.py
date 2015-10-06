@@ -18,7 +18,7 @@ setup(
     version=__version__,
     author=__author__,
     author_email=__author_email__,
-    description=('A super awesome extended version of the official '
+    description=('An extended version of the official '
                  'Elasticsearch Python client.'),
     long_description=read_file('README.md'),
     platforms=('Any',),
