@@ -9,13 +9,13 @@ to make using [Elasticsearch][es_server] even easier.
 This compatibility table indicates compatibility of SuperElasticsearch with
 the versions of elasticsearch-py and Elasticsearch.
 
-## Usage
+## Design & Usage
 
 superelasticsearch is nothing but a sub-class of the Elasticsearch Python
 client. It closely follows the API design as the Elasticsearch client library
 does.
 
-## Additional APIs
+## Additional Python APIs
 
 SuperElasticsearch provides a few additional APIs that are sugar coted to
 simplify using Elasticsearch in Python. These additional APIs are listed as
@@ -41,7 +41,7 @@ for doc in client.itersearch(index='test_index', doc_type'tweets',
 
 ```
 
-## Simpler Bulk API
+### Simpler Bulk API
 
 Elasitcsearch's Bulk API is extremely helpful but has different semantics.
 Using Bulk API means manual handling of all the differences in naming of
@@ -80,3 +80,11 @@ requirements and executes the request.
 
 [es]: http://github.com/elasticsearch/elasticsearch-py
 [es_server]: http://elasticsearch.org
+
+## License
+
+This project is licensed under MIT License.
+
+Copyright (c) 2013 Wingify Software Pvt. Ltd.
+
+See [LICENSE.md](LICENSE.md).
