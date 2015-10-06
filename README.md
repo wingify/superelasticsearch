@@ -57,7 +57,7 @@ Example:
 from superelasticsearch import SuperElasticsearch
 
 client = SuperElasticsearch(hosts=['localhost:9200'])
-bulk = client.create_bulk_operation()
+bulk = client.bulk_operation()
 
 bulk.index(index='test_index_1', doc_type='test_doc_type',
 		   body=dict(key1='val1'))
