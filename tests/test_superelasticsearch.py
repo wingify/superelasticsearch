@@ -249,15 +249,15 @@ class TestBulkOperation(unittest.TestCase):
         # restore bulk method back on SuperElasticsearch object
         self.ss.bulk = self._bulk
 
-    def test_create_bulk_operation_returns_bulk_operation_object(self):
+    def test_bulk_operation_returns_bulk_operation_object(self):
         self.assertTrue(
-            isinstance(self.ss.create_bulk_operation(), BulkOperation))
+            isinstance(self.ss.bulk_operation(), BulkOperation))
 
-    def test_create_bulk_operation_must_pass_superlelasticsearch_object(self):
-        self.assertEquals(self.ss, self.ss.create_bulk_operation()._client)
+    def test_bulk_operation_must_pass_superlelasticsearch_object(self):
+        self.assertEquals(self.ss, self.ss.bulk_operation()._client)
 
     def test_index_or_create_must_push_correct_action(self):
-        bulk = self.ss.create_bulk_operation()
+        bulk = self.ss.bulk_operation()
         body = dict(key1='val1')
 
         # Without params
@@ -294,7 +294,7 @@ class TestBulkOperation(unittest.TestCase):
         })
 
     def test_index_calls_index_or_create_method_with_correct_args(self):
-        bulk = self.ss.create_bulk_operation()
+        bulk = self.ss.bulk_operation()
         body = dict(key1='val1')
 
         bulk._index_or_create = Mock()
@@ -312,7 +312,7 @@ class TestBulkOperation(unittest.TestCase):
                           'test_bulk_doc_type')
 
     def test_create_calls_index_or_create_method_with_correct_args(self):
-        bulk = self.ss.create_bulk_operation()
+        bulk = self.ss.bulk_operation()
         body = dict(key1='val1')
 
         bulk._index_or_create = Mock()
@@ -330,7 +330,7 @@ class TestBulkOperation(unittest.TestCase):
                           'abcd')
 
     def test_execute_must_empty_actions_after_executing_bulk_operation(self):
-        bulk = self.ss.create_bulk_operation()
+        bulk = self.ss.bulk_operation()
         body = dict(key1='val1')
         bulk.create(index='test_bulk', doc_type='test_bulk_doc_type', body=body,
                     id=4, routing='abcd')
@@ -339,7 +339,7 @@ class TestBulkOperation(unittest.TestCase):
         self.assertEquals(len(bulk._actions), 0)
 
     def test_execute_must_return_bulk_response(self):
-        bulk = self.ss.create_bulk_operation()
+        bulk = self.ss.bulk_operation()
         body = dict(key1='val1')
         bulk.create(index='test_bulk', doc_type='test_bulk_doc_type', body=body,
                     id=4, routing='abcd')
@@ -352,7 +352,7 @@ class TestBulkOperation(unittest.TestCase):
     def test_execute_must_call_bulk_with_correct_body_arg(self):
         body = dict(key1='val1')
 
-        bulk = self.ss.create_bulk_operation()
+        bulk = self.ss.bulk_operation()
         bulk._client.bulk = Mock()
         bulk.create(index='test_bulk', doc_type='test_bulk_doc_type', body=body,
                     id=4, routing='abcd')
@@ -371,7 +371,7 @@ class TestBulkOperation(unittest.TestCase):
     def test_execute_must_use_kwargs_provided_at_the_creation_of_bulk_op(self):
         body = dict(key1='val1')
 
-        bulk = self.ss.create_bulk_operation(index='default_index',
+        bulk = self.ss.bulk_operation(index='default_index',
                                              doc_type='some_type',
                                              refresh=True)
         bulk._client.bulk = Mock()
@@ -390,7 +390,7 @@ class TestBulkOperation(unittest.TestCase):
     def test_execute_must_override_kwargs_provided_at_bulk_op_creation(self):
         body = dict(key1='val1')
 
-        bulk = self.ss.create_bulk_operation(index='default_index',
+        bulk = self.ss.bulk_operation(index='default_index',
                                              doc_type='some_type',
                                              refresh=True)
         bulk._client.bulk = Mock()
@@ -407,7 +407,7 @@ class TestBulkOperation(unittest.TestCase):
                           'false')
 
     def test_update_must_push_correct_action(self):
-        bulk = self.ss.create_bulk_operation()
+        bulk = self.ss.bulk_operation()
         body = dict(key1='val1')
 
         # Without params
@@ -432,7 +432,7 @@ class TestBulkOperation(unittest.TestCase):
         })
 
     def test_delete_must_push_correct_action(self):
-        bulk = self.ss.create_bulk_operation()
+        bulk = self.ss.bulk_operation()
         body = dict(key1='val1')
 
         # Without params

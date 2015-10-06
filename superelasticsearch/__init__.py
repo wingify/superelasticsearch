@@ -175,7 +175,7 @@ class SuperElasticsearch(Elasticsearch):
         # clear scroll
         self.clear_scroll(scroll_id=scroll_id)
 
-    def create_bulk_operation(self, **kwargs):
+    def bulk_operation(self, **kwargs):
         '''
         Creates a new native client like instance for performing bulk
         operations. For every bulk operation, a new bulk operation instance
@@ -184,7 +184,7 @@ class SuperElasticsearch(Elasticsearch):
         .. Usage::
         from superelasticsearch import SuperElasticsearch
         es = SuperElasticsearch(hosts=['localhost:9200'])
-        bulk = es.create_bulk_operation(index='bulk_index')
+        bulk = es.bulk_operation(index='bulk_index')
 
         bulk.index(
             index='other_bulk_index', doc_type='docs', body=dict(key1=val1))
