@@ -7,7 +7,15 @@ to make using [Elasticsearch][es_server] even easier.
 ## Compatibility
 
 This compatibility table indicates compatibility of SuperElasticsearch with
-the versions of elasticsearch-py and Elasticsearch.
+the versions of elasticsearch-py and Elasticsearch. This only means that we
+have tested SuperElasticsearch with these versions of Elasticsearch and
+the official Elasticsearch Python client. It may actually work with newer
+releases. If such is the case, please feel free to updated this table by
+opening a pull request.
+
+| Elasticsearch  | elasticsearch-py | SuperElasticsearch | Release date |
+| -------------- | ---------------- | ------------------ | ------------ |
+| 1.7.2          | 1.7.0            | 0.1.0              | Oct 6, 2015  |
 
 ## Design & Usage
 
