@@ -21,7 +21,6 @@ setup(
     description=('An extended version of the official '
                  'Elasticsearch Python client.'),
     long_description=read_file('README.md'),
-    platforms=('Any',),
     packages=find_packages(exclude=['tests']),
     install_requires = [
         'elasticsearch',
