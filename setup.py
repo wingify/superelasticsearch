@@ -7,8 +7,8 @@ except ImportError:
 
 __name__ = 'superelasticsearch'
 __version__ = '0.1.0'
-__author__ = 'Vaidik Kapoor'
-__author_email__ = 'kapoor.vaidik@gmail.com'
+__author__ = 'Wingify Engineering'
+__author_email__ = 'dev@wingify.com'
 
 # read contents of a file
 read_file = lambda x: open(x, 'r').read()
