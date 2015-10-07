@@ -25,7 +25,7 @@ does.
 
 ## Additional Python APIs
 
-SuperElasticsearch provides a few additional APIs that are sugar coted to
+SuperElasticsearch provides a few additional APIs that are sugar coated to
 simplify using Elasticsearch in Python. These additional APIs are listed as
 follows:
 
