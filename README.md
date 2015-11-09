@@ -29,7 +29,7 @@ SuperElasticsearch provides a few additional APIs that are sugar coated to
 simplify using Elasticsearch in Python. These additional APIs are listed as
 follows:
 
-### Iterated Serach (or simpler Scroll API)
+### Iterated Search (or simpler Scroll API)
 
 Iterated search allows you to perform scroll API with ease and helps you reduce
 code, especially where you might want to use it in a loop. Iterated search
